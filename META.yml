@@ -1,0 +1,36 @@
+---
+abstract: 'Locale::PO:Utils - Utils to build/extract the PO header and anything else.'
+author:
+  - 'Steffen Winkler <steffenw at cpan.org>'
+build_requires:
+  Test::Differences: 0
+  Test::Exception: 0
+  Test::More: 0
+  Test::NoWarnings: 0
+configure_requires:
+  Module::Build: 0.36
+generated_by: 'Module::Build version 0.3603'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Locale-PO-Utils
+provides:
+  Locale::PO::Utils:
+    file: lib/Locale/PO/Utils.pm
+    version: 0.01
+recommends:
+  Test::Pod: 1.14
+  Test::Pod::Coverage: 1.04
+requires:
+  Carp: 0
+  List::MoreUtils: 0
+  Moose: 0
+  MooseX::FollowPBP: 0
+  MooseX::Params::Validate: 0
+  MooseX::StrictConstructor: 0
+  Storable: 0
+  perl: 5.006
+resources:
+  license: http://dev.perl.org/licenses/
+version: 0.01

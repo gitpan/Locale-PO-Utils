@@ -1,0 +1,17 @@
+Build.PL
+Changes
+lib/Locale/PO/Utils.pm
+Locale-PO-Utils.bat
+MANIFEST			This list of files
+README
+t/01_basics.t
+t/02_build_header.t
+t/03_get_header.t
+t/04_maketext_to_gettext.t
+t/chars.t
+t/perl_critic.t
+t/pod.t
+t/pod_coverage.t
+t/prereq_build.t
+Makefile.PL
+META.yml
