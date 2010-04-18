@@ -20,6 +20,7 @@ WriteMakefile
                            'Test::Differences' => 0,
                            'MooseX::StrictConstructor' => 0,
                            'MooseX::FollowPBP' => 0,
+                           'Clone' => 0,
                            'MooseX::Params::Validate' => 0,
                            'List::MoreUtils' => 0,
                            'Moose' => 0

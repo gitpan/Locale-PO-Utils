@@ -7,7 +7,7 @@ use Carp qw(confess);
 use Clone qw(clone);
 use Params::Validate qw(:all);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 my (@HEADER_KEYS, @HEADER_FORMATS, @HEADER_DEFAULTS, @HEADER_REGEX);
 {
@@ -340,13 +340,13 @@ __END__
 
 Locale::PO::Utils - Utils to build/extract the PO header and anything else
 
-$Id: Utils.pm 485 2010-04-16 05:26:35Z steffenw $
+$Id: Utils.pm 491 2010-04-18 05:23:02Z steffenw $
 
 $HeadURL: https://dbd-po.svn.sourceforge.net/svnroot/dbd-po/Locale-PO-Utils/trunk/lib/Locale/PO/Utils.pm $
 
 =head1 VERSION
 
-0.01
+0.02
 
 =head1 SYNOPSIS
 

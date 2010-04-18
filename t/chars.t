@@ -3,12 +3,22 @@
 use strict;
 use warnings;
 
+use Cwd qw(getcwd);
 use File::Find;
-use Test::DBD::PO::Defaults qw($PATH $UNTAINT_FILENAME_PATTERN);
 use Test::More;
 
 $ENV{TEST_AUTHOR}
     or plan skip_all => 'Author test. Set $ENV{TEST_AUTHOR} to a true value to run.';
+
+my $UNTAINT_FILENAME_PATTERN = qr{\A (
+    (?:
+        (?: [A-Z] : )
+        | //
+    )?
+    [0-9A-Z_\-/\. ]+
+) \z}xmsi;
+my ($PATH) = getcwd() =~ $UNTAINT_FILENAME_PATTERN;
+$PATH =~ s{\\}{/}xmsg;
 
 my @list;
 find(
@@ -17,8 +27,11 @@ find(
         untaint         => 1,
         wanted          => sub {
             -d and return;
-            $File::Find::name =~ m{/ \.svn / | \.git (?: ignore )? \z | \.mo \z | \.txt \z}xms
-                and return;
+            $File::Find::name =~ m{
+                / \.svn /
+                | / \.git /
+                | / \.gitignore \z
+            }xms and return;
             $File::Find::name =~ m{
                 (
                     (?: /lib/ | /example/ | /t/ )

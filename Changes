@@ -1,4 +1,7 @@
 Revision history for Perl extension Locale::PO::Utils.
 
+0.02  Sun Apr 18 07:25:00 2010
+- bug fix dependencies
+
 0.01  Fri Apr 16 07:23:34 2010
 - first version

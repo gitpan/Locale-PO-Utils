@@ -28,6 +28,7 @@ Module::Build->new(
         'MooseX::FollowPBP'         => 0,
         'MooseX::Params::Validate'  => 0,
         'List::MoreUtils'           => 0,
+        Clone                       => 0,
         $is_ppm
         ? ()
         : (
