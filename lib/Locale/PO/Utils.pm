@@ -7,7 +7,7 @@ use Carp qw(confess);
 use Clone qw(clone);
 use Params::Validate qw(:all);
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 my (@HEADER_KEYS, @HEADER_FORMATS, @HEADER_DEFAULTS, @HEADER_REGEX);
 {
@@ -329,6 +329,107 @@ sub maketext_to_gettext {
         : ();
 }
 
+sub expand_maketext {
+    my (undef, $is_gettext_style, $text, @args) = @_;
+
+    defined $text
+        or return $text;
+
+    my $replace = sub {
+        if (defined $6) { # replace only
+            my $index = $6 - 1;
+            exists $args[$index]
+                or return $1;
+            my $value = $args[$index];
+            return defined $value ? $value : q{};
+        }
+        if (defined $2) { # quant
+            my $index = $2 - 1;
+            exists $args[$index]
+                or return $1;
+            my $value    = $args[$index];
+            my $singular = $3;
+            my $plural   = $4;
+            my $zero     = $5;
+            $value = defined $value ? $value : q{};
+            no warnings qw(uninitialized numeric); ## no critic (NoWarnings)
+            return
+                +( defined $zero && $value == 0 )
+                ? $zero
+                : ( defined $plural && $value == 1 )
+                ? (
+                    defined $singular
+                    ? "$value $singular"
+                    : q{}
+                )
+                : (
+                    defined $plural
+                    ? "$value $plural"
+                    : defined $singular
+                    ? "$value $singular"
+                    : q{}
+                );
+        }
+
+        return q{};
+    };
+
+    if ($is_gettext_style) {
+        $text =~ s{
+            (
+                \% (?: quant | \* )
+                \(
+                \% (\d+)              # $2: n
+                , ( [^,]* )           # $3: singular
+                (?: , ( [^,]* ) )?    # $4: plural
+                (?: , ( [^,]* ) )?    # $5: zero
+                \)
+                |
+                \% (\d+)              # $6: n
+            )
+        }
+        {
+            $replace->()
+        }xmsge;
+    }
+    else {
+        $text =~ s{
+            (
+                \[ (?:
+                    (?: quant | \* )
+                    , _ (\d+)            # $2: n
+                    , ( [^,]* )          # $3: singular
+                    (?: , ( [^,]* ) )?   # $4: plural
+                    (?: , ( [^,]* ) )?   # $5: zero
+                    |
+                    _ (\d+)              # $6: n
+                ) \]
+            )
+        }
+        {
+            $replace->()
+        }xmsge;
+    }
+
+    return $text;
+}
+
+sub expand_gettext {
+    my (undef, $text, %args) = @_;
+
+    defined $text
+        or return $text;
+
+    my $regex = join q{|}, map { quotemeta $_ } keys %args;
+    $text =~ s{
+        \{ ($regex) \}
+    }{
+        defined $args{$1} ? $args{$1} : "{$1}"
+    }xmsge;
+
+    return $text;
+}
+
 no Moose;
 __PACKAGE__->meta()->make_immutable();
 
@@ -340,13 +441,13 @@ __END__
 
 Locale::PO::Utils - Utils to build/extract the PO header and anything else
 
-$Id: Utils.pm 491 2010-04-18 05:23:02Z steffenw $
+$Id: Utils.pm 496 2010-07-27 20:38:01Z steffenw $
 
 $HeadURL: https://dbd-po.svn.sourceforge.net/svnroot/dbd-po/Locale-PO-Utils/trunk/lib/Locale/PO/Utils.pm $
 
 =head1 VERSION
 
-0.02
+0.03
 
 =head1 SYNOPSIS
 
@@ -484,8 +585,15 @@ $data is now:
 
 =head2 method maketext_to_gettext
 
-Maps maketext strings with [_1] or [quant,_1,singular,plural,zero] inside
-to %1 or %quant(%1,singluar,plural,zero] inside.
+Maps maketext strings with
+[_1]
+or [quant,_1,singular,plural,zero]
+or [*,_1,singular,plural,zero]
+inside
+to %1
+or %quant(%1,singluar,plural,zero]
+or %*(%1,singluar,plural,zero]
+inside.
 
     $gettext_string = $obj->maketext_to_gettext($maketext_string);
 
@@ -501,6 +609,44 @@ or
 
     @gettext_strings = Locale::PO::Utils->maketext_to_gettext($maketext_strings);
 
+=head2 method expand_maketext
+
+Expands strings containing maketext placeholders.
+If the fist parameter is true,
+gettext style is used instead of maketext style.
+
+maketext style:
+
+ [_1]
+ [quant,_1,singular,plural,zero]
+ [*,_1,singular,plural,zero]
+
+gettext style:
+
+ %1
+ %quant(%1,singular,plural,zero)
+ %*(%1,singular,plural,zero)
+
+    $expanded = $obj->expand_maketext(undef, $maketext_text, @args);
+
+    $expanded = $obj->expand_maketext(1, $gettext_text, @args);
+
+This method can called as class method too.
+
+    $expanded = Locale::PO::Utils->expand_maketext(undef, $maketext_text, @args);
+
+    $expanded = Locale::PO::Utils->expand_maketext(1, $gettext_text, @args);
+
+=head2 method expand_gettext
+
+Expands strings containing gettext placeholders like {name}.
+
+    $expanded = $obj->expand_gettext($text, %args);
+
+This method can called as class method too.
+
+    $expanded = Locale::PO::Utils->expand_gettext($text, %args);
+
 =head1 DIAGNOSTICS
 
 none
@@ -513,15 +659,15 @@ none
 
 Moose
 
-L<MooseX::StrictConstructor>
+L<MooseX::StrictConstructor|MooseX::StrictConstructor>
 
-L<MooseX::FollowPBP>
+L<MooseX::FollowPBP|MooseX::FollowPBP>
 
 Carp
 
 Clone
 
-L<Params::Validate>
+L<Params::Validate|Params::Validate>
 
 =head1 INCOMPATIBILITIES
 

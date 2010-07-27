@@ -7,6 +7,8 @@ t/01_basics.t
 t/02_build_header.t
 t/03_get_header.t
 t/04_maketext_to_gettext.t
+t/05_maketext.t
+t/06_gettext.t
 t/chars.t
 t/perl_critic.t
 t/pod.t
