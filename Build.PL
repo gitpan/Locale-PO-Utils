@@ -26,14 +26,13 @@ Module::Build->new(
         Moose                       => 0,
         'MooseX::StrictConstructor' => 0,
         'MooseX::FollowPBP'         => 0,
-        'MooseX::Params::Validate'  => 0,
-        'List::MoreUtils'           => 0,
         Clone                       => 0,
         $is_ppm
         ? ()
         : (
+            English  => 0,
             Carp     => 0,
-            Storable => 0,
+            Safe     => 0,
         )
     },
     build_requires => {

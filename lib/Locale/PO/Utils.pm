@@ -3,11 +3,15 @@ package Locale::PO::Utils;
 use Moose;
 use MooseX::StrictConstructor;
 use MooseX::FollowPBP;
+use English qw(-no_match_vars $EVAL_ERROR);
 use Carp qw(confess);
 use Clone qw(clone);
 use Params::Validate qw(:all);
+require Safe;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
+
+# read/write header
 
 my (@HEADER_KEYS, @HEADER_FORMATS, @HEADER_DEFAULTS, @HEADER_REGEX);
 {
@@ -97,6 +101,29 @@ has separator => (
     is      => 'rw',
     isa     => 'Str',
     default => "\n",
+);
+
+has is_gettext_style => (
+    is     => 'rw',
+    isa    => 'Bool',
+    writer => 'set_is_gettext_style',
+    reader => 'is_gettext_style',
+);
+
+has plural_forms => (
+    is      => 'rw',
+    isa     => 'Str',
+    default => 'nplurals=1; plural=0',
+);
+has nplurals => (
+    is      => 'rw',
+    isa     => 'Int',
+    default => 1,
+);
+has plural_code => (
+    is      => 'rw',
+    isa     => 'CodeRef',
+    default => sub { return sub { return 0 } },
 );
 
 my $valid_keys_regex
@@ -294,6 +321,48 @@ sub get_header_msgstr_data { ## no critic (ArgUnpacking)
     return $array_ref->[$index];
 }
 
+# calculate plural forms
+
+sub calculate_plural_forms {
+    my $self = shift;
+
+    my $plural_forms = $self->get_plural_forms();
+    $plural_forms =~ s{\b ( nplurals | plural | n ) \b}{\$$1}xmsg;
+    my $safe = Safe->new();
+    {
+        my $code = <<"EOC";
+            my \$n = 0;
+            my (\$nplurals, \$plural);
+            $plural_forms;
+            \$nplurals;
+EOC
+        $self->set_nplurals(
+            $safe->reval($code)
+                or confess "Code of Plural-Forms $plural_forms is not safe, $EVAL_ERROR"
+        );
+    }
+    {
+        my $code = <<"EOC";
+            sub {
+                my \$n = shift;
+
+                my (\$nplurals, \$plural);
+                $plural_forms;
+
+                return \$plural || 0;
+            }
+EOC
+        $self->set_plural_code(
+            $safe->reval($code)
+                or confess "Code $plural_forms is not safe, $EVAL_ERROR"
+        );
+    }
+
+    return $self;
+}
+
+# different writing of placeholders
+
 my $maketext_to_gettext_scalar = sub {
     my $string = shift;
 
@@ -329,8 +398,10 @@ sub maketext_to_gettext {
         : ();
 }
 
+# expand placeholders
+
 sub expand_maketext {
-    my (undef, $is_gettext_style, $text, @args) = @_;
+    my ($self, $text, @args) = @_;
 
     defined $text
         or return $text;
@@ -374,7 +445,7 @@ sub expand_maketext {
         return q{};
     };
 
-    if ($is_gettext_style) {
+    if ( $self->is_gettext_style() ) {
         $text =~ s{
             (
                 \% (?: quant | \* )
@@ -441,13 +512,13 @@ __END__
 
 Locale::PO::Utils - Utils to build/extract the PO header and anything else
 
-$Id: Utils.pm 496 2010-07-27 20:38:01Z steffenw $
+$Id: Utils.pm 516 2010-07-29 18:11:48Z steffenw $
 
 $HeadURL: https://dbd-po.svn.sourceforge.net/svnroot/dbd-po/Locale-PO-Utils/trunk/lib/Locale/PO/Utils.pm $
 
 =head1 VERSION
 
-0.03
+0.04
 
 =head1 SYNOPSIS
 
@@ -463,7 +534,9 @@ Utils to build/extract the PO header and anything else.
 
     my $obj = Locale::PO::Utils->new();
 
-=head2 method get_all_header_keys
+=head2 read/write header
+
+=head3 method get_all_header_keys
 
 This sub returns all header keys you can set or get.
 
@@ -493,11 +566,11 @@ The $array_ref is:
         extended
     ) ]
 
-=head2 method build_header_msgstr
+=head3 method build_header_msgstr
 
 There are more ways to do this.
 
-=head3 minimal header
+=head4 minimal header
 
     $obj->build_header_msgstr();
 
@@ -507,7 +580,7 @@ The result is:
  Content-Type: text/plain; charset=UTF-8
  Content-Transfer-Encoding: 8bit
 
-=head3 maximal header
+=head4 maximal header
 
     $obj->build_header_msgstr({
         'Project-Id-Version'        => 'Testproject',
@@ -545,23 +618,23 @@ The result is:
  X-Poedit-Country: GERMANY
  X-Poedit-SourceCharset: utf-8
 
-=head2 method split_header_msgstr (for internal use only)
+=head3 method split_header_msgstr (for internal use only)
 
 This method is internal used at method get_header_msgstr_data.
 
     $array_ref = $obj->split_header_msgstr($msgstr);
 
-=head2 method get_header_msgstr_data
+=head3 method get_header_msgstr_data
 
 This method extracts the values using the given keys.
 
-=head3 single mode
+=head4 single mode
 
     $string = $obj->get_header_msgstr_data($msgstr, 'Project-Id-Version');
 
 $string is now "Testproject".
 
-=head3 multiple mode
+=head4 multiple mode
 
     $data = $obj->get_header_msgstr_data(
         $msgstr,
@@ -583,7 +656,42 @@ $data is now:
         ],
     ]
 
-=head2 method maketext_to_gettext
+=head2 method set_plural_forms
+
+Plural forms are defined like that for English
+
+    $obj->set_plural_forms('nplurals=2; plural=n != 1');
+
+=head3 method calculate_plural_forms
+
+This method sets the nplural count and the plural code in a safe way.
+
+    $obj->calculate_plural_forms();
+
+=head3 method get_nplurals
+
+This method get back the calculated count of plural forms.
+The default value before any calculation is 1.
+
+    $nplurals = $obj->get_nplurals();
+
+=head3 method get_plural_code
+
+This method get back the calculated code for the calculaded plural form
+to select the right plural.
+The default value before any calculation sub {return 0}.
+
+For the example 'nplurals=2; plural=n != 1':
+
+    $plural = $obj->get_plural_code()->(0), # $plural is 1
+    $plural = $obj->get_plural_code()->(1), # $plural is 0
+    $plural = $obj->get_plural_code()->(2), # $plural is 1
+    $plural = $obj->get_plural_code()->(3), # $plural is 1
+    ...
+
+=head2 different writing of placeholders
+
+=head3 method maketext_to_gettext
 
 Maps maketext strings with
 [_1]
@@ -599,7 +707,7 @@ inside.
 
 or
 
-    @gettext_strings = $obj->maketext_to_gettext($maketext_strings);
+    @gettext_strings = $obj->maketext_to_gettext(@maketext_strings);
 
 This method can called as class method too.
 
@@ -607,9 +715,11 @@ This method can called as class method too.
 
 or
 
-    @gettext_strings = Locale::PO::Utils->maketext_to_gettext($maketext_strings);
+    @gettext_strings = Locale::PO::Utils->maketext_to_gettext(@maketext_strings);
 
-=head2 method expand_maketext
+=head2 expand placeholders
+
+=head3 method expand_maketext
 
 Expands strings containing maketext placeholders.
 If the fist parameter is true,
@@ -627,17 +737,13 @@ gettext style:
  %quant(%1,singular,plural,zero)
  %*(%1,singular,plural,zero)
 
-    $expanded = $obj->expand_maketext(undef, $maketext_text, @args);
+    $obj->set_is_gettext_style(0);
+    $expanded = $obj->expand_maketext($maketext_text, @args);
 
-    $expanded = $obj->expand_maketext(1, $gettext_text, @args);
+    $obj->set_is_gettext_style(1);
+    $expanded = $obj->expand_maketext($gettext_text, @args);
 
-This method can called as class method too.
-
-    $expanded = Locale::PO::Utils->expand_maketext(undef, $maketext_text, @args);
-
-    $expanded = Locale::PO::Utils->expand_maketext(1, $gettext_text, @args);
-
-=head2 method expand_gettext
+=head3 method expand_gettext
 
 Expands strings containing gettext placeholders like {name}.
 
@@ -646,6 +752,11 @@ Expands strings containing gettext placeholders like {name}.
 This method can called as class method too.
 
     $expanded = Locale::PO::Utils->expand_gettext($text, %args);
+
+=head1 EXAMPLE
+
+Inside of this distribution is a directory named example.
+Run the *.pl files.
 
 =head1 DIAGNOSTICS
 
@@ -663,11 +774,15 @@ L<MooseX::StrictConstructor|MooseX::StrictConstructor>
 
 L<MooseX::FollowPBP|MooseX::FollowPBP>
 
+English
+
 Carp
 
 Clone
 
 L<Params::Validate|Params::Validate>
+
+Safe
 
 =head1 INCOMPATIBILITIES
 
@@ -676,6 +791,12 @@ not known
 =head1 BUGS AND LIMITATIONS
 
 not known
+
+=head1 SEE ALSO
+
+L<http://en.wikipedia.org/wiki/Gettext>
+
+L<http://translate.sourceforge.net/wiki/l10n/pluralforms>
 
 =head1 AUTHOR
 

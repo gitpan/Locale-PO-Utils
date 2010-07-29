@@ -3,7 +3,6 @@
 use strict;
 use warnings;
 
-use Carp qw(croak);
 use Test::More tests => 3 + 1;
 use Test::NoWarnings;
 use Test::Differences;

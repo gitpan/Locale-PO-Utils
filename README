@@ -1,4 +1,4 @@
-Locale::PO::Utils version 0.03
+Locale::PO::Utils version 0.04
 ==============================
 
 This are utils to build or extract the PO header and anything else.
@@ -23,7 +23,13 @@ DEPENDENCIES
 
 This module requires these other modules and libraries:
 
+    English
+    Carp
+    Safe
+    Clone
     Moose
+    MooseX::StrictConstructor
+    MooseX::FollowPBP
 
 COPYRIGHT AND LICENCE
 

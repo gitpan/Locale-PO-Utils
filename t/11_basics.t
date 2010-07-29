@@ -3,22 +3,13 @@
 use strict;
 use warnings;
 
-use Carp qw(croak);
-use Test::More tests => 12 + 1;
+use Test::More tests => 11 + 1;
 use Test::NoWarnings;
 use Test::Exception;
 
 BEGIN {
     use_ok('Locale::PO::Utils');
 }
-
-throws_ok(
-    sub {
-        Locale::PO::Utils->new(xxx => 1);
-    },
-    qr{unknown \s+ attribute .+? xxx}xms,
-    'false attribute',
-);
 
 my $obj = Locale::PO::Utils->new(
     charset   => 11,

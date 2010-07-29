@@ -13,7 +13,7 @@ WriteMakefile
   'VERSION_FROM' => 'lib/Locale/PO/Utils.pm',
   'PREREQ_PM' => {
                    'Test::Exception' => 0,
-                   'Storable' => 0,
+                   'English' => 0,
                    'Test::NoWarnings' => 0,
                    'Carp' => 0,
                    'Test::More' => 0,
@@ -21,8 +21,7 @@ WriteMakefile
                    'MooseX::StrictConstructor' => 0,
                    'MooseX::FollowPBP' => 0,
                    'Clone' => 0,
-                   'MooseX::Params::Validate' => 0,
-                   'List::MoreUtils' => 0,
+                   'Safe' => 0,
                    'Moose' => 0
                  }
 )
