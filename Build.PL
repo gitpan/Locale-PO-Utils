@@ -27,6 +27,7 @@ Module::Build->new(
         'MooseX::StrictConstructor' => 0,
         'MooseX::FollowPBP'         => 0,
         Clone                       => 0,
+        'Params::Validate'          => 0,
         $is_ppm
         ? ()
         : (

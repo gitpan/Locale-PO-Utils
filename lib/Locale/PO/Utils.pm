@@ -9,7 +9,7 @@ use Clone qw(clone);
 use Params::Validate qw(:all);
 require Safe;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 # read/write header
 
@@ -512,13 +512,13 @@ __END__
 
 Locale::PO::Utils - Utils to build/extract the PO header and anything else
 
-$Id: Utils.pm 516 2010-07-29 18:11:48Z steffenw $
+$Id: Utils.pm 520 2010-07-31 06:17:39Z steffenw $
 
 $HeadURL: https://dbd-po.svn.sourceforge.net/svnroot/dbd-po/Locale-PO-Utils/trunk/lib/Locale/PO/Utils.pm $
 
 =head1 VERSION
 
-0.04
+0.05
 
 =head1 SYNOPSIS
 

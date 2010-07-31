@@ -1,5 +1,8 @@
 Revision history for Perl extension Locale::PO::Utils.
 
+0.05 Sat Jul 31 08:09:36 2010
+- fixed prerequisit of Params::Validate
+
 0.04  Thu Jul 29 20:12:21 2010
 - new expand methods changed
 - add examples

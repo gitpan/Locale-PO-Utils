@@ -18,6 +18,7 @@ WriteMakefile
                    'Carp' => 0,
                    'Test::More' => 0,
                    'Test::Differences' => 0,
+                   'Params::Validate' => 0,
                    'MooseX::StrictConstructor' => 0,
                    'MooseX::FollowPBP' => 0,
                    'Clone' => 0,
