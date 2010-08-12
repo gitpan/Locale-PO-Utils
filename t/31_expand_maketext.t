@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 38 + 1;
+use Test::More tests => 50 + 1;
 use Test::NoWarnings;
 use Test::Differences;
 BEGIN {
@@ -21,110 +21,127 @@ is_deeply(
 my @data = (
     {
         style  => 'maketext',
-        text   => 'foo [_1] bar [quant,_2,singular] baz',
+        text   => '(1) foo [_1] bar [quant,_2,singular] baz [_3]',
         result => [
-            'foo and bar 0 singular baz',
-            'foo and bar 1 singular baz',
-            'foo and bar 2 singular baz',
+            '(1) foo and bar [quant,_2,singular] baz [_3]',
+            '(1) foo and bar 0 singular baz [_3]',
+            '(1) foo and bar 1 singular baz [_3]',
+            '(1) foo and bar 2 singular baz [_3]',
         ],
     },
     {
-        text   => 'foo [_1] bar [*,_2,singular] baz',
+        text   => '(2) foo [_1] bar [*,_2,singular] baz [_3]',
         result => [
-            'foo and bar 0 singular baz',
-            'foo and bar 1 singular baz',
-            'foo and bar 2 singular baz',
+            '(2) foo and bar [*,_2,singular] baz [_3]',
+            '(2) foo and bar 0 singular baz [_3]',
+            '(2) foo and bar 1 singular baz [_3]',
+            '(2) foo and bar 2 singular baz [_3]',
         ],
     },
     {
         style  => 'gettext',
-        text   => 'foo %1 bar %quant(%2,singular) baz',
+        text   => '(3) foo %1 bar %quant(%2,singular) baz %3',
         result => [
-            'foo and bar 0 singular baz',
-            'foo and bar 1 singular baz',
-            'foo and bar 2 singular baz',
+            '(3) foo and bar %quant(%2,singular) baz %3',
+            '(3) foo and bar 0 singular baz %3',
+            '(3) foo and bar 1 singular baz %3',
+            '(3) foo and bar 2 singular baz %3',
         ],
     },
     {
-        text   => 'foo %1 bar %*(%2,singular) baz',
+        text   => '(4) foo %1 bar %*(%2,singular) baz %3',
         result => [
-            'foo and bar 0 singular baz',
-            'foo and bar 1 singular baz',
-            'foo and bar 2 singular baz',
+            '(4) foo and bar %*(%2,singular) baz %3',
+            '(4) foo and bar 0 singular baz %3',
+            '(4) foo and bar 1 singular baz %3',
+            '(4) foo and bar 2 singular baz %3',
         ],
     },
     {
         style  => 'maketext',
-        text   => 'foo [_1] bar [quant,_2,singular,plural] baz',
+        text   => '(5) foo [_1] bar [quant,_2,singular,plural] baz [_3]',
         result => [
-            'foo and bar 0 plural baz',
-            'foo and bar 1 singular baz',
-            'foo and bar 2 plural baz',
+            '(5) foo and bar [quant,_2,singular,plural] baz [_3]',
+            '(5) foo and bar 0 plural baz [_3]',
+            '(5) foo and bar 1 singular baz [_3]',
+            '(5) foo and bar 2 plural baz [_3]',
         ],
     },
     {
-        text   => 'foo [_1] bar [*,_2,singular,plural] baz',
+        text   => '(6) foo [_1] bar [*,_2,singular,plural] baz [_3]',
         result => [
-            'foo and bar 0 plural baz',
-            'foo and bar 1 singular baz',
-            'foo and bar 2 plural baz',
+            '(6) foo and bar [*,_2,singular,plural] baz [_3]',
+            '(6) foo and bar 0 plural baz [_3]',
+            '(6) foo and bar 1 singular baz [_3]',
+            '(6) foo and bar 2 plural baz [_3]',
         ],
     },
     {
         style  => 'gettext',
-        text   => 'foo %1 bar %quant(%2,singular,plural) baz',
+        text   => '(7) foo %1 bar %quant(%2,singular,plural) baz %3',
         result => [
-            'foo and bar 0 plural baz',
-            'foo and bar 1 singular baz',
-            'foo and bar 2 plural baz',
+            '(7) foo and bar %quant(%2,singular,plural) baz %3',
+            '(7) foo and bar 0 plural baz %3',
+            '(7) foo and bar 1 singular baz %3',
+            '(7) foo and bar 2 plural baz %3',
         ],
     },
     {
-        text   => 'foo %1 bar %*(%2,singular,plural) baz',
+        text   => '(8) foo %1 bar %*(%2,singular,plural) baz %3',
         result => [
-            'foo and bar 0 plural baz',
-            'foo and bar 1 singular baz',
-            'foo and bar 2 plural baz',
+            '(8) foo and bar %*(%2,singular,plural) baz %3',
+            '(8) foo and bar 0 plural baz %3',
+            '(8) foo and bar 1 singular baz %3',
+            '(8) foo and bar 2 plural baz %3',
         ],
     },
     {
         style  => 'maketext',
-        text   => 'foo [_1] bar [quant,_2,singular,plural,zero] baz',
+        text   => '(9) foo [_1] bar [quant,_2,singular,plural,zero] baz [_3]',
         result => [
-            'foo and bar zero baz',
-            'foo and bar 1 singular baz',
-            'foo and bar 2 plural baz',
+            '(9) foo and bar [quant,_2,singular,plural,zero] baz [_3]',
+            '(9) foo and bar zero baz [_3]',
+            '(9) foo and bar 1 singular baz [_3]',
+            '(9) foo and bar 2 plural baz [_3]',
         ],
     },
     {
-        text   => 'foo [_1] bar [*,_2,singular,plural,zero] baz',
+        text   => '(10) foo [_1] bar [*,_2,singular,plural,zero] baz [_3]',
         result => [
-            'foo and bar zero baz',
-            'foo and bar 1 singular baz',
-            'foo and bar 2 plural baz',
+            '(10) foo and bar [*,_2,singular,plural,zero] baz [_3]',
+            '(10) foo and bar zero baz [_3]',
+            '(10) foo and bar 1 singular baz [_3]',
+            '(10) foo and bar 2 plural baz [_3]',
         ],
     },
     {
         style  => 'gettext',
-        text   => 'foo %1 bar %quant(%2,singular,plural,zero) baz',
+        text   => '(11) foo %1 bar %quant(%2,singular,plural,zero) baz %3',
         result => [
-            'foo and bar zero baz',
-            'foo and bar 1 singular baz',
-            'foo and bar 2 plural baz',
+            '(11) foo and bar %quant(%2,singular,plural,zero) baz %3',
+            '(11) foo and bar zero baz %3',
+            '(11) foo and bar 1 singular baz %3',
+            '(11) foo and bar 2 plural baz %3',
         ],
     },
     {
-        text   => 'foo %1 bar %*(%2,singular,plural,zero) baz',
+        text   => '(12) foo %1 bar %*(%2,singular,plural,zero) baz %3',
         result => [
-            'foo and bar zero baz',
-            'foo and bar 1 singular baz',
-            'foo and bar 2 plural baz',
+            '(12) foo and bar %*(%2,singular,plural,zero) baz %3',
+            '(12) foo and bar zero baz %3',
+            '(12) foo and bar 1 singular baz %3',
+            '(12) foo and bar 2 plural baz %3',
         ],
     },
 );
 
 for my $data (@data) {
-    for my $number (0 .. 2) {
+    my $index = 0;
+    for my $number (undef, 0 .. 2) {
+        my $defined_number
+            = defined $number
+            ? $number
+            : 'undef';
         if ( exists $data->{style} ) {
             $obj->set_is_gettext_style( $data->{style} eq 'gettext' );
         }
@@ -134,9 +151,9 @@ for my $data (@data) {
                 'and',
                 $number,
             ),
-            $data->{result}->[$number],
+            $data->{result}->[$index++],
             ( $obj->is_gettext_style() ? 'gettext' : 'maketext' )
-            . " style, '$data->{text}', 'and', $number",
+            . " style, '$data->{text}', 'and', $defined_number",
         );
     }
 }

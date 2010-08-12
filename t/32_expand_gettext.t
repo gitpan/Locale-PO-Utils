@@ -20,20 +20,22 @@ is_deeply(
 
 eq_or_diff(
     Locale::PO::Utils->expand_gettext(
-        'foo {plus} bar {plus} baz = {num} items',
-        plus => q{+},
-        num  => 3,
+        'foo {plus} bar {plus} baz = {num} items {undef}',
+        plus  => q{+},
+        num   => 3,
+        undef => undef,
     ),
-    'foo + bar + baz = 3 items',
+    'foo + bar + baz = 3 items {undef}',
     'class method',
 );
 
 eq_or_diff(
     $obj->expand_gettext(
-        'foo {plus} bar {plus} baz = {num} items',
-        plus => q{+},
-        num  => 3,
+        'foo {plus} bar {plus} baz = {num} items {undef}',
+        plus  => q{+},
+        num   => 3,
+        undef => undef,
     ),
-    'foo + bar + baz = 3 items',
+    'foo + bar + baz = 3 items {undef}',
     'object method',
 );

@@ -1,4 +1,4 @@
-Locale::PO::Utils version 0.05
+Locale::PO::Utils version 0.06
 ==============================
 
 This are utils to build or extract the PO header and anything else.
@@ -31,6 +31,7 @@ This module requires these other modules and libraries:
     Clone
     Params::Validate
     Safe
+    Scalar::Util
 
 COPYRIGHT AND LICENCE
 

@@ -7,11 +7,12 @@ use English qw(-no_match_vars $EVAL_ERROR);
 use Carp qw(confess);
 use Clone qw(clone);
 use Params::Validate qw(:all);
+use Scalar::Util qw(looks_like_number);
 require Safe;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
-# read/write header
+# Build or extract the PO header
 
 my (@HEADER_KEYS, @HEADER_FORMATS, @HEADER_DEFAULTS, @HEADER_REGEX);
 {
@@ -91,16 +92,19 @@ has charset => (
     is      => 'rw',
     isa     => 'Str',
     default => 'UTF-8',
+    lazy    => 1,
 );
 has eol => (
     is      => 'rw',
     isa     => 'Str',
     default => "\n",
+    lazy    => 1,
 );
 has separator => (
     is      => 'rw',
     isa     => 'Str',
     default => "\n",
+    lazy    => 1,
 );
 
 has is_gettext_style => (
@@ -114,17 +118,33 @@ has plural_forms => (
     is      => 'rw',
     isa     => 'Str',
     default => 'nplurals=1; plural=0',
+    lazy    => 1,
 );
+after 'set_plural_forms' => sub {
+    return shift->_calculate_plural_forms();
+};
 has nplurals => (
     is      => 'rw',
     isa     => 'Int',
     default => 1,
+    lazy    => 1,
 );
 has plural_code => (
     is      => 'rw',
     isa     => 'CodeRef',
     default => sub { return sub { return 0 } },
+    lazy    => 1,
 );
+
+sub BUILD {
+    my ($self, $args) = @_;
+
+    if (exists $args->{plural_forms} ) {
+        $self->_calculate_plural_forms();
+    }
+
+    return $self;
+}
 
 my $valid_keys_regex
     = '(?xsm-i:\A (?: '
@@ -321,9 +341,9 @@ sub get_header_msgstr_data { ## no critic (ArgUnpacking)
     return $array_ref->[$index];
 }
 
-# calculate plural forms
+# Calculate the plural forms
 
-sub calculate_plural_forms {
+sub _calculate_plural_forms {
     my $self = shift;
 
     my $plural_forms = $self->get_plural_forms();
@@ -361,7 +381,7 @@ EOC
     return $self;
 }
 
-# different writing of placeholders
+# Manage the different writing of placeholders
 
 my $maketext_to_gettext_scalar = sub {
     my $string = shift;
@@ -398,7 +418,7 @@ sub maketext_to_gettext {
         : ();
 }
 
-# expand placeholders
+# Expand the placeholders
 
 sub expand_maketext {
     my ($self, $text, @args) = @_;
@@ -409,40 +429,38 @@ sub expand_maketext {
     my $replace = sub {
         if (defined $6) { # replace only
             my $index = $6 - 1;
-            exists $args[$index]
+            defined $args[$index]
                 or return $1;
-            my $value = $args[$index];
-            return defined $value ? $value : q{};
+            return $args[$index];
         }
         if (defined $2) { # quant
-            my $index = $2 - 1;
-            exists $args[$index]
+            my $value = $args[$2 - 1];
+            defined $value
                 or return $1;
-            my $value    = $args[$index];
+            looks_like_number($value)
+                or return $1;
             my $singular = $3;
             my $plural   = $4;
             my $zero     = $5;
-            $value = defined $value ? $value : q{};
-            no warnings qw(uninitialized numeric); ## no critic (NoWarnings)
             return
                 +( defined $zero && $value == 0 )
                 ? $zero
-                : ( defined $plural && $value == 1 )
+                : $value == 1
                 ? (
                     defined $singular
                     ? "$value $singular"
-                    : q{}
+                    : return $1
                 )
                 : (
                     defined $plural
                     ? "$value $plural"
                     : defined $singular
                     ? "$value $singular"
-                    : q{}
+                    : return $1
                 );
         }
 
-        return q{};
+        return $1; ## no critic (CaptureWithoutTest)
     };
 
     if ( $self->is_gettext_style() ) {
@@ -450,13 +468,13 @@ sub expand_maketext {
             (
                 \% (?: quant | \* )
                 \(
-                \% (\d+)              # $2: n
-                , ( [^,]* )           # $3: singular
-                (?: , ( [^,]* ) )?    # $4: plural
-                (?: , ( [^,]* ) )?    # $5: zero
+                \% (\d+)                # $2: n
+                , ( [^,\)]* )           # $3: singular
+                (?: , ( [^,\)]* ) )?    # $4: plural
+                (?: , ( [^,\)]* ) )?    # $5: zero
                 \)
                 |
-                \% (\d+)              # $6: n
+                \% (\d+)                # $6: n
             )
         }
         {
@@ -468,12 +486,12 @@ sub expand_maketext {
             (
                 \[ (?:
                     (?: quant | \* )
-                    , _ (\d+)            # $2: n
-                    , ( [^,]* )          # $3: singular
-                    (?: , ( [^,]* ) )?   # $4: plural
-                    (?: , ( [^,]* ) )?   # $5: zero
+                    , _ (\d+)              # $2: n
+                    , ( [^,\]]* )          # $3: singular
+                    (?: , ( [^,\]]* ) )?   # $4: plural
+                    (?: , ( [^,\]]* ) )?   # $5: zero
                     |
-                    _ (\d+)              # $6: n
+                    _ (\d+)                # $6: n
                 ) \]
             )
         }
@@ -512,33 +530,64 @@ __END__
 
 Locale::PO::Utils - Utils to build/extract the PO header and anything else
 
-$Id: Utils.pm 520 2010-07-31 06:17:39Z steffenw $
+$Id: Utils.pm 536 2010-08-12 20:15:27Z steffenw $
 
 $HeadURL: https://dbd-po.svn.sourceforge.net/svnroot/dbd-po/Locale-PO-Utils/trunk/lib/Locale/PO/Utils.pm $
 
 =head1 VERSION
 
-0.05
+0.06
 
 =head1 SYNOPSIS
 
+For possible constructor attributes read the chapters at SUBROUTINES/METHODS.
+
     use Locale::PO::Utils;
+
+    $obj = Locale::PO::Utils->new();
 
 =head1 DESCRIPTION
 
-Utils to build/extract the PO header and anything else.
+Utils to
+build or extract the PO header,
+calculate the plural forms,
+manage the different writing of placeholders
+and expand the placeholders.
+
+The header of a PO file is quite complex.
+This module helps to build the header and extract.
+
+In this header, an entry is called "Plural-Forms".
+How many plural forms the language has, is described there.
+The second Information in "Plural-Forms" describes as a code,
+how to choose the correct plural form.
+
+Some phrases contain placeholders.
+Here are the methods to replace these.
 
 =head1 SUBROUTINES/METHODS
 
-=head2 method new
+=head2 method BUILD
 
-    my $obj = Locale::PO::Utils->new();
+internal used
 
-=head2 read/write header
+=head2 Build or extract the PO header
+
+All attributes are optional.
+The attribute values are the defaults to show them.
+
+    $obj = Locale::PO::Utils->new(
+        charset   => 'UTF-8',
+        eol       => "\n",
+        separator => "\n",
+    );
+
+The attribute setter are named set_charset, set_eol and set_separator.
+The attribute getter are named get_charset, get_eol and get_separator.
 
 =head3 method get_all_header_keys
 
-This sub returns all header keys you can set or get.
+This sub returns all header keys, you can set or get.
 
     $array_ref = $obj->get_all_header_keys();
 
@@ -656,32 +705,46 @@ $data is now:
         ],
     ]
 
-=head2 method set_plural_forms
+=head2 Calculate the plural forms
 
-Plural forms are defined like that for English
+All attributes are optional.
+The attribute values are the defaults to show them.
 
-    $obj->set_plural_forms('nplurals=2; plural=n != 1');
+    $obj = Locale::PO::Utils->new(
+        plural_forms => 'nplurals=1; plural=0',
+        nplurals     => 1,
+        plural_code  => sub { return 0 } },
+    );
 
-=head3 method calculate_plural_forms
+The attribute setter are named set_plural_forms, set_nplurals and set_plural_code.
+Call method set_plural_forms only or use the constructor.
+After that nplurals and plual_code will be calculated automaticly in a safe way.
 
-This method sets the nplural count and the plural code in a safe way.
+The attribute getter are named get_plural_forms, get_nplurals and get_plural_code.
 
-    $obj->calculate_plural_forms();
+=head3 method set_plural_forms
+
+Plural forms are defined like this for English:
+
+    $obj->set_plural_forms('nplurals=2; plural=(n != 1)');
+
+After that this method calculates and set
+nplurals and the plural_code in a safe way.
 
 =head3 method get_nplurals
 
 This method get back the calculated count of plural forms.
-The default value before any calculation is 1.
+The default value before any calculation is C<1>.
 
     $nplurals = $obj->get_nplurals();
 
 =head3 method get_plural_code
 
 This method get back the calculated code for the calculaded plural form
-to select the right plural.
-The default value before any calculation sub {return 0}.
+to choose the correct plural.
+The default value before any calculation C<sub {return 0}>.
 
-For the example 'nplurals=2; plural=n != 1':
+For the example C<'nplurals=2; plural=(n != 1)'>:
 
     $plural = $obj->get_plural_code()->(0), # $plural is 1
     $plural = $obj->get_plural_code()->(1), # $plural is 0
@@ -689,18 +752,32 @@ For the example 'nplurals=2; plural=n != 1':
     $plural = $obj->get_plural_code()->(3), # $plural is 1
     ...
 
-=head2 different writing of placeholders
+=head2 Manage the different writing of placeholders
+
+    $obj = Locale::PO::Utils->new();
 
 =head3 method maketext_to_gettext
 
 Maps maketext strings with
-[_1]
-or [quant,_1,singular,plural,zero]
-or [*,_1,singular,plural,zero]
-inside
-to %1
-or %quant(%1,singluar,plural,zero]
-or %*(%1,singluar,plural,zero]
+
+ [_1]
+ [quant,_2,singular]
+ [quant,_3,singular,plural]
+ [quant,_4,singular,plural,zero]
+ [*,_5,singular]
+ [*,_6,singular,plural]
+ [*,_7,singular,plural,zero]
+
+inside to
+
+ %1
+ %quant(%2,singluar)
+ %quant(%3,singluar,plural)
+ %quant(%4,singluar,plural,zero)
+ %*(%5,singluar)
+ %*(%6,singluar,plural)
+ %*(%7,singluar,plural,zero)
+
 inside.
 
     $gettext_string = $obj->maketext_to_gettext($maketext_string);
@@ -717,24 +794,42 @@ or
 
     @gettext_strings = Locale::PO::Utils->maketext_to_gettext(@maketext_strings);
 
-=head2 expand placeholders
+=head2 Expand the placeholders
+
+All attributes are optional.
+The attribute values are the defaults to show them.
+
+    $obj = Locale::PO::Utils->new(
+        is_gettext_style => undef, # as boolean false
+    );
+
+The attribute setter is named set_is_gettext_style.
+The attribute getter is named is_gettext_style.
 
 =head3 method expand_maketext
 
 Expands strings containing maketext placeholders.
-If the fist parameter is true,
-gettext style is used instead of maketext style.
+To use gettext style set is_gettext_style to a true value.
+Otherwise maketext style is expected.
 
 maketext style:
 
  [_1]
+ [quant,_1,singular]
+ [quant,_1,singular,plural]
  [quant,_1,singular,plural,zero]
+ [*,_1,singular]
+ [*,_1,singular,plural]
  [*,_1,singular,plural,zero]
 
 gettext style:
 
  %1
+ %quant(%1,singular)
+ %quant(%1,singular,plural)
  %quant(%1,singular,plural,zero)
+ %*(%1,singular)
+ %*(%1,singular,plural)
  %*(%1,singular,plural,zero)
 
     $obj->set_is_gettext_style(0);
@@ -745,7 +840,7 @@ gettext style:
 
 =head3 method expand_gettext
 
-Expands strings containing gettext placeholders like {name}.
+Expands strings containing gettext placeholders like C<{name}>.
 
     $expanded = $obj->expand_gettext($text, %args);
 
@@ -784,6 +879,8 @@ L<Params::Validate|Params::Validate>
 
 Safe
 
+L<Scalar::Util|Scalar::Util>
+
 =head1 INCOMPATIBILITIES
 
 not known
@@ -793,6 +890,10 @@ not known
 not known
 
 =head1 SEE ALSO
+
+L<Locale::Maketext|Locale::Maketext>
+
+L<Locele::TextDomain|Locele::TextDomain>
 
 L<http://en.wikipedia.org/wiki/Gettext>
 

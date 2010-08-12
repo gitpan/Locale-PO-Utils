@@ -28,8 +28,7 @@ eq_or_diff(
     'run plural default code',
 );
 
-$obj->set_plural_forms('nplurals=2; plural=n != 1');
-$obj->calculate_plural_forms();
+$obj->set_plural_forms('nplurals=2; plural=(n != 1)');
 eq_or_diff(
     $obj->get_nplurals(),
     2,
@@ -55,7 +54,6 @@ eq_or_diff(
 $obj->set_plural_forms(
     'nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 or n%100>=20) ? 1 : 2)'
 );
-$obj->calculate_plural_forms();
 eq_or_diff(
     $obj->get_nplurals(),
     3,
@@ -89,4 +87,3 @@ eq_or_diff(
         );
     }
 }
-

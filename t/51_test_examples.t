@@ -123,7 +123,7 @@ EOT
         script => '-I../lib -T 41_calculate_plural_forms.pl',
         result => <<'EOT',
 English:
-plural_froms = 'nplurals=2; plural=n != 1'
+plural_froms = 'nplurals=2; plural=(n != 1)'
 nplurals = 2
 
 The EN plural from from 0 is 1

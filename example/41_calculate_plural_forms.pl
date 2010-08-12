@@ -9,9 +9,8 @@ require Locale::PO::Utils;
 
 # initialize English plural forms
 my $obj = Locale::PO::Utils->new(
-    plural_forms => 'nplurals=2; plural=n != 1',
+    plural_forms => 'nplurals=2; plural=(n != 1)',
 );
-$obj->calculate_plural_forms();
 
 printf
     "English:\nplural_froms = '%s'\nnplurals = %s\n\n",
@@ -30,7 +29,6 @@ for (0 .. 2) {
 $obj->set_plural_forms(
     'nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 or n%100>=20) ? 1 : 2)'
 );
-$obj->calculate_plural_forms();
 
 printf
     "Russian:\nplural_froms = '%s'\nnplurals = %s\n\n",
@@ -45,14 +43,14 @@ for (0 .. 2, 5, 100 .. 102, 105, 110 .. 112, 115, 120 .. 122, 125) { ## no criti
         $plural_code->($_),
 }
 
-# $Id: 41_calculate_plural_forms.pl 511 2010-07-29 12:13:34Z steffenw $
+# $Id: 41_calculate_plural_forms.pl 534 2010-08-12 05:31:29Z steffenw $
 
 __END__
 
 Output:
 
 English:
-plural_froms = 'nplurals=2; plural=n != 1'
+plural_froms = 'nplurals=2; plural=(n != 1)'
 nplurals = 2
 
 The EN plural from from 0 is 1

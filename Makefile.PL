@@ -12,6 +12,7 @@ WriteMakefile
   'EXE_FILES' => [],
   'VERSION_FROM' => 'lib/Locale/PO/Utils.pm',
   'PREREQ_PM' => {
+                   'Scalar::Util' => 0,
                    'Test::Exception' => 0,
                    'English' => 0,
                    'Test::NoWarnings' => 0,

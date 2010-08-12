@@ -31,9 +31,10 @@ Module::Build->new(
         $is_ppm
         ? ()
         : (
-            English  => 0,
-            Carp     => 0,
-            Safe     => 0,
+            English        => 0,
+            Carp           => 0,
+            Safe           => 0,
+            'Scalar::Util' => 0,
         )
     },
     build_requires => {
