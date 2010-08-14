@@ -18,16 +18,28 @@ is_deeply(
     'undef',
 );
 
+$obj->set_numeric_code( sub {
+    my $value = shift;
+
+    defined $value
+        or return $value;
+    while ( $value =~ s{(\d+) (\d{3})}{$1,$2}xms ) {}
+    $value =~ tr{.,}{,.};
+
+    return $value;
+});
 eq_or_diff(
-    Locale::PO::Utils->expand_gettext(
-        'foo {plus} bar {plus} baz = {num} items {undef}',
-        plus  => q{+},
-        num   => 3,
-        undef => undef,
+    $obj->expand_gettext(
+        '{a} {b} {c} {d}',
+        a => 'a',
+        b => 2,
+        c => '3234567.890',
+        d => 4_234_567.890,
     ),
-    'foo + bar + baz = 3 items {undef}',
-    'class method',
+    'a 2 3.234.567,890 4.234.567,89',
+    'numeric',
 );
+$obj->clear_numeric_code();
 
 eq_or_diff(
     $obj->expand_gettext(

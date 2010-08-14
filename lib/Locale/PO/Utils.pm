@@ -10,7 +10,7 @@ use Params::Validate qw(:all);
 use Scalar::Util qw(looks_like_number);
 require Safe;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 # Build or extract the PO header
 
@@ -107,44 +107,46 @@ has separator => (
     lazy    => 1,
 );
 
-has is_gettext_style => (
-    is     => 'rw',
-    isa    => 'Bool',
-    writer => 'set_is_gettext_style',
-    reader => 'is_gettext_style',
-);
-
 has plural_forms => (
     is      => 'rw',
     isa     => 'Str',
     default => 'nplurals=1; plural=0',
     lazy    => 1,
+    trigger => \&_calculate_plural_forms,
 );
-after 'set_plural_forms' => sub {
-    return shift->_calculate_plural_forms();
-};
 has nplurals => (
-    is      => 'rw',
-    isa     => 'Int',
-    default => 1,
-    lazy    => 1,
+    is       => 'rw',
+    isa      => 'Int',
+    default  => 1,
+    lazy     => 1,
+    init_arg => undef,
+    # reader or writer switches off PBP
+    reader   => 'get_nplurals',
+    writer   => '_set_nplurals',
 );
 has plural_code => (
-    is      => 'rw',
-    isa     => 'CodeRef',
-    default => sub { return sub { return 0 } },
-    lazy    => 1,
+    is       => 'rw',
+    isa      => 'CodeRef',
+    default  => sub { return sub { return 0 } },
+    lazy     => 1,
+    init_arg => undef,
+    # reader or writer switches off PBP
+    reader   => 'get_plural_code',
+    writer   => '_set_plural_code',
 );
 
-sub BUILD {
-    my ($self, $args) = @_;
-
-    if (exists $args->{plural_forms} ) {
-        $self->_calculate_plural_forms();
-    }
-
-    return $self;
-}
+has is_gettext_style => (
+    is     => 'rw',
+    isa    => 'Bool',
+    # reader or writer switches off PBP
+    reader => 'is_gettext_style',
+    writer => 'set_is_gettext_style',
+);
+has numeric_code => (
+    is      => 'rw',
+    isa     => 'CodeRef',
+    clearer => 'clear_numeric_code',
+);
 
 my $valid_keys_regex
     = '(?xsm-i:\A (?: '
@@ -356,7 +358,7 @@ sub _calculate_plural_forms {
             $plural_forms;
             \$nplurals;
 EOC
-        $self->set_nplurals(
+        $self->_set_nplurals(
             $safe->reval($code)
                 or confess "Code of Plural-Forms $plural_forms is not safe, $EVAL_ERROR"
         );
@@ -372,7 +374,7 @@ EOC
                 return \$plural || 0;
             }
 EOC
-        $self->set_plural_code(
+        $self->_set_plural_code(
             $safe->reval($code)
                 or confess "Code $plural_forms is not safe, $EVAL_ERROR"
         );
@@ -426,26 +428,29 @@ sub expand_maketext {
     defined $text
         or return $text;
 
+    my $numeric_code = $self->get_numeric_code();
+
+    ## no critic (CaptureWithoutTest)
     my $replace = sub {
-        if (defined $6) { # replace only
-            my $index = $6 - 1;
-            defined $args[$index]
-                or return $1;
-            return $args[$index];
-        }
         if (defined $2) { # quant
             my $value = $args[$2 - 1];
             defined $value
                 or return $1;
             looks_like_number($value)
                 or return $1;
+            my $count = $value;
+            if ($numeric_code) {
+                $value = $numeric_code->($count);
+                defined $value
+                    or return $1;
+            }
             my $singular = $3;
             my $plural   = $4;
             my $zero     = $5;
             return
-                +( defined $zero && $value == 0 )
+                +( defined $zero && $count == 0 )
                 ? $zero
-                : $value == 1
+                : $count == 1
                 ? (
                     defined $singular
                     ? "$value $singular"
@@ -459,9 +464,19 @@ sub expand_maketext {
                     : return $1
                 );
         }
+        # replace only
+        my $value = $args[$6 - 1];
+        defined $value
+            or return $1;
+        if ($numeric_code) {
+            $value = $numeric_code->($value);
+            defined $value
+                or return $1;
+        }
 
-        return $1; ## no critic (CaptureWithoutTest)
+        return $value;
     };
+    ## use critic (CaptureWithoutTest)
 
     if ( $self->is_gettext_style() ) {
         $text =~ s{
@@ -504,16 +519,35 @@ sub expand_maketext {
 }
 
 sub expand_gettext {
-    my (undef, $text, %args) = @_;
+    my ($self, $text, %args) = @_;
 
     defined $text
         or return $text;
+
+    my $numeric_code = $self->get_numeric_code();
+
+    ## no critic (CaptureWithoutTest)
+    my $replace = sub {
+        my $value = $args{$1};
+        defined $value
+            or return "{$1}";
+        if ($numeric_code) {
+            looks_like_number($value)
+                or return $value;
+            $value = $numeric_code->($value);
+            defined $value
+                or return "{$1}";
+        }
+
+        return $value;
+    };
+    ## use critic (CaptureWithoutTest)
 
     my $regex = join q{|}, map { quotemeta $_ } keys %args;
     $text =~ s{
         \{ ($regex) \}
     }{
-        defined $args{$1} ? $args{$1} : "{$1}"
+        $replace->();
     }xmsge;
 
     return $text;
@@ -530,13 +564,13 @@ __END__
 
 Locale::PO::Utils - Utils to build/extract the PO header and anything else
 
-$Id: Utils.pm 536 2010-08-12 20:15:27Z steffenw $
+$Id: Utils.pm 541 2010-08-14 07:19:43Z steffenw $
 
 $HeadURL: https://dbd-po.svn.sourceforge.net/svnroot/dbd-po/Locale-PO-Utils/trunk/lib/Locale/PO/Utils.pm $
 
 =head1 VERSION
 
-0.06
+0.07
 
 =head1 SYNOPSIS
 
@@ -566,10 +600,6 @@ Some phrases contain placeholders.
 Here are the methods to replace these.
 
 =head1 SUBROUTINES/METHODS
-
-=head2 method BUILD
-
-internal used
 
 =head2 Build or extract the PO header
 
@@ -712,12 +742,17 @@ The attribute values are the defaults to show them.
 
     $obj = Locale::PO::Utils->new(
         plural_forms => 'nplurals=1; plural=0',
-        nplurals     => 1,
-        plural_code  => sub { return 0 } },
     );
 
-The attribute setter are named set_plural_forms, set_nplurals and set_plural_code.
-Call method set_plural_forms only or use the constructor.
+The defaults for nplural and plural_code is:
+
+    $obj->get_nplurals()    # returns: 1
+    $obj->get_plural_code() # returns: sub { return 0 } }
+
+The attribute setter is named set_plural_forms.
+There is no public setter for attributes nplurals and plural_code
+and it is not possible to set them in the constructor.
+Call method set_plural_forms or set attribute plural_forms in the constructor.
 After that nplurals and plual_code will be calculated automaticly in a safe way.
 
 The attribute getter are named get_plural_forms, get_nplurals and get_plural_code.
@@ -806,6 +841,28 @@ The attribute values are the defaults to show them.
 The attribute setter is named set_is_gettext_style.
 The attribute getter is named is_gettext_style.
 
+=head3 method set_numeric_code, clear_numeric_code
+
+If it is needed to localize the numerics
+than describe this in a code reference.
+
+    my $coderef = sub {
+        my $value = shift;
+
+        ...
+
+        return $value;
+    };
+
+    $obj->set_numeric_code($coderef); # set
+
+Than method expand_maketext or expand_gettext
+will run this code before the substitution of numerics placeholders.
+
+To switch off this code - clear them.
+
+    $obj->clear_numeric_code();
+
 =head3 method expand_maketext
 
 Expands strings containing maketext placeholders.
@@ -843,10 +900,6 @@ gettext style:
 Expands strings containing gettext placeholders like C<{name}>.
 
     $expanded = $obj->expand_gettext($text, %args);
-
-This method can called as class method too.
-
-    $expanded = Locale::PO::Utils->expand_gettext($text, %args);
 
 =head1 EXAMPLE
 

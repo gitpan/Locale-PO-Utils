@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 50 + 1;
+use Test::More tests => 51 + 1;
 use Test::NoWarnings;
 use Test::Differences;
 BEGIN {
@@ -17,6 +17,33 @@ is_deeply(
     [ undef ],
     'undef',
 );
+
+$obj->set_numeric_code( sub {
+    my $value = shift;
+
+    defined $value
+        or return $value;
+    while ( $value =~ s{(\d+) (\d{3})}{$1,$2}xms ) {}
+    $value =~ tr{.,}{,.};
+
+    return $value;
+});
+eq_or_diff(
+    $obj->expand_maketext(
+        '[_1];[_2];[_3];[_4];[quant,_5,x];[quant,_6,x];[quant,_7,x];[quant,_8,x]',
+        undef,
+        'a',
+        3,
+        '4234567.890',
+        undef,
+        'b',
+        7,
+        8_234_567.890,
+    ),
+    '[_1];a;3;4.234.567,890;[quant,_5,x];[quant,_6,x];7 x;8.234.567,89 x',
+    'numeric',
+);
+$obj->clear_numeric_code();
 
 my @data = (
     {

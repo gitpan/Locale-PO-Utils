@@ -94,18 +94,30 @@ EOT
         path   => 'example',
         script => '-I../lib -T 31_expand_maketext.pl',
         result => <<'EOT',
+foo and bar [quant,_2,singular,plural,zero] baz
 foo and bar zero baz
 foo and bar 1 singular baz
 foo and bar 2 plural baz
+foo and bar 3.234.567,890 plural baz
+foo and bar 4.234.567,89 plural baz
+foo and bar [*,_2,singular,plural,zero] baz
 foo and bar zero baz
 foo and bar 1 singular baz
 foo and bar 2 plural baz
+foo and bar 3234567.890 plural baz
+foo and bar 4234567.89 plural baz
+foo and bar %quant(%2,singular,plural,zero) baz
 foo and bar zero baz
 foo and bar 1 singular baz
 foo and bar 2 plural baz
+foo and bar 3234567.890 plural baz
+foo and bar 4234567.89 plural baz
+foo and bar %*(%2,singular,plural,zero) baz
 foo and bar zero baz
 foo and bar 1 singular baz
 foo and bar 2 plural baz
+foo and bar 3.234.567,890 plural baz
+foo and bar 4.234.567,89 plural baz
 EOT
     },
     {
@@ -113,8 +125,12 @@ EOT
         path   => 'example',
         script => '-I../lib -T 32_expand_gettext.pl',
         result => <<'EOT',
-CLASS: foo + bar + baz = 3 items
-OBJECT: foo + bar + baz = 3 items
+foo + bar + baz = {num} items
+foo + bar + baz = 0 items
+foo + bar + baz = 1 items
+foo + bar + baz = 2 items
+foo + bar + baz = 3234567.890 items
+foo + bar + baz = 4234567.89 items
 EOT
     },
     {
@@ -164,4 +180,3 @@ for my $data (@data) {
         $data->{test},
     );
 }
-
