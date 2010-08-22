@@ -13,24 +13,24 @@ BEGIN {
 my $obj = Locale::PO::Utils->new();
 
 eq_or_diff(
-    $obj->get_plural_forms(),
+    scalar $obj->get_plural_forms(),
     'nplurals=1; plural=0',
     'get plural forms default',
 );
 eq_or_diff(
-    $obj->get_nplurals(),
+    scalar $obj->get_nplurals(),
     1,
     'get nplurals default',
 );
 eq_or_diff(
-    $obj->get_plural_code()->(1),
+    scalar $obj->get_plural_code()->(1),
     0,
     'run plural default code',
 );
 
 $obj->set_plural_forms('nplurals=2; plural=(n != 1)');
 eq_or_diff(
-    $obj->get_nplurals(),
+    scalar $obj->get_nplurals(),
     2,
     'EN: get nplurals 2',
 );
@@ -43,7 +43,7 @@ eq_or_diff(
     );
     for (sort keys %data) {
         eq_or_diff(
-            $plural_code->($_),
+            scalar $plural_code->($_),
             $data{$_},
             "EN: run plural code for $_, expect $data{$_}",
         );
@@ -55,7 +55,7 @@ $obj->set_plural_forms(
     'nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 or n%100>=20) ? 1 : 2)'
 );
 eq_or_diff(
-    $obj->get_nplurals(),
+    scalar $obj->get_nplurals(),
     3,
     'RU: get nplurals 3',
 );

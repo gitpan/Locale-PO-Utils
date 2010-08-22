@@ -1,4 +1,4 @@
-Locale::PO::Utils version 0.07
+Locale::PO::Utils version 0.08
 ==============================
 
 This are utils to build or extract the PO header and anything else.

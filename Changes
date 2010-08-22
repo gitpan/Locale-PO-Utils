@@ -1,5 +1,9 @@
 Revision history for Perl extension Locale::PO::Utils.
 
+0.08  Sun Aug 22 21:45:59 2010
+- change method maketext_to_gettext
+- add method gettext_to_maketext
+
 0.07  Sat Aug 14 09:13:58 2010
 - handle numeric format
   at method expand_maketext and expand_gettext

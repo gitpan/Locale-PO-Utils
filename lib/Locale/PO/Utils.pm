@@ -10,7 +10,7 @@ use Params::Validate qw(:all);
 use Scalar::Util qw(looks_like_number);
 require Safe;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 # Build or extract the PO header
 
@@ -391,16 +391,16 @@ my $maketext_to_gettext_scalar = sub {
     defined $string
         or return $string;
     $string =~ s{
-        \[ \s*
+        \[
         (?:
             ( [A-Za-z*\#] [A-Za-z_]* ) # $1 - function call
-            \s* , \s*
+            ,
             _ ( [1-9]\d* )             # $2 - variable
             ( [^\]]* )                 # $3 - arguments
             |                          # or
             _ ( [1-9]\d* )             # $4 - variable
         )
-        \s* \]
+        \]
     }
     {
         $4 ? "%$4" : "%$1(%$2$3)"
@@ -417,6 +417,41 @@ sub maketext_to_gettext {
         ? map { $maketext_to_gettext_scalar->($_) } @strings
         : @strings
         ? $maketext_to_gettext_scalar->( $strings[0] )
+        : ();
+}
+
+my $gettext_to_maketext_scalar = sub {
+    my $string = shift;
+
+    defined $string
+        or return $string;
+    $string =~ s{
+        %
+        (?:
+            ( [A-Za-z*\#] [A-Za-z_]* ) # $1 - function call
+            \(
+            % ( [1-9]\d* )             # $2 - variable
+            ( [^\)]* )                 # $3 - arguments
+            \)
+            |                          # or
+            ( [1-9]\d* )               # $4 - variable
+        )
+    }
+    {
+        $4 ? "[_$4]" : "[$1,_$2$3]"
+    }xmsge;
+
+    return $string;
+};
+
+sub gettext_to_maketext {
+    my (undef, @strings) = @_;
+
+    return
+        @strings > 1
+        ? map { $gettext_to_maketext_scalar->($_) } @strings
+        : @strings
+        ? $gettext_to_maketext_scalar->( $strings[0] )
         : ();
 }
 
@@ -564,13 +599,13 @@ __END__
 
 Locale::PO::Utils - Utils to build/extract the PO header and anything else
 
-$Id: Utils.pm 541 2010-08-14 07:19:43Z steffenw $
+$Id: Utils.pm 546 2010-08-22 19:44:42Z steffenw $
 
 $HeadURL: https://dbd-po.svn.sourceforge.net/svnroot/dbd-po/Locale-PO-Utils/trunk/lib/Locale/PO/Utils.pm $
 
 =head1 VERSION
 
-0.07
+0.08
 
 =head1 SYNOPSIS
 
@@ -747,13 +782,13 @@ The attribute values are the defaults to show them.
 The defaults for nplural and plural_code is:
 
     $obj->get_nplurals()    # returns: 1
-    $obj->get_plural_code() # returns: sub { return 0 } }
+    $obj->get_plural_code() # returns: sub { return 0 }
 
 The attribute setter is named set_plural_forms.
-There is no public setter for attributes nplurals and plural_code
+There are no public setter for attributes nplurals and plural_code
 and it is not possible to set them in the constructor.
 Call method set_plural_forms or set attribute plural_forms in the constructor.
-After that nplurals and plual_code will be calculated automaticly in a safe way.
+After that nplurals and plual_code will be calculated automaticly and safe.
 
 The attribute getter are named get_plural_forms, get_nplurals and get_plural_code.
 
@@ -764,7 +799,7 @@ Plural forms are defined like this for English:
     $obj->set_plural_forms('nplurals=2; plural=(n != 1)');
 
 After that this method calculates and set
-nplurals and the plural_code in a safe way.
+nplurals and the plural_code safe.
 
 =head3 method get_nplurals
 
@@ -777,7 +812,7 @@ The default value before any calculation is C<1>.
 
 This method get back the calculated code for the calculaded plural form
 to choose the correct plural.
-The default value before any calculation C<sub {return 0}>.
+The default value before any calculation is C<sub {return 0}>.
 
 For the example C<'nplurals=2; plural=(n != 1)'>:
 
@@ -828,6 +863,24 @@ This method can called as class method too.
 or
 
     @gettext_strings = Locale::PO::Utils->maketext_to_gettext(@maketext_strings);
+
+=head3 method gettext_to_maketext
+
+It is the same like method maktetext_to_gettext only the other direction.
+
+    $maketext_string = $obj->gettext_to_maketext($gettext_string);
+
+or
+
+    @maketext_strings = $obj->gettext_to_maketext(@gettext_strings);
+
+This method can called as class method too.
+
+    $maketext_string = Locale::PO::Utils->gettext_to_maketext($gettext_string);
+
+or
+
+    @maketext_strings = Locale::PO::Utils->gettext_to_maketext(@gettext_strings);
 
 =head2 Expand the placeholders
 

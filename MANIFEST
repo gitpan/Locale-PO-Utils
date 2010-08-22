@@ -14,6 +14,7 @@ t/11_basics.t
 t/12_build_header.t
 t/13_get_header.t
 t/21_maketext_to_gettext.t
+t/22_gettext_to_maketext.t
 t/31_expand_maketext.t
 t/32_expand_gettext.t
 t/41_calculate_plural_forms.t

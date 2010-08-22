@@ -24,17 +24,17 @@ isa_ok(
 
 # check getter
 is(
-    $obj->get_charset(),
+    scalar $obj->get_charset(),
     11,
     '11 get_charset',
 );
 is(
-    $obj->get_eol(),
+    scalar $obj->get_eol(),
     21,
     '21 get_eol',
 );
 is(
-    $obj->get_separator(),
+    scalar $obj->get_separator(),
     31,
     '31 get_separator',
 );
@@ -46,17 +46,17 @@ $obj->set_separator(32);
 
 # read settings back
 is(
-    $obj->get_charset(),
+    scalar $obj->get_charset(),
     12,
     '12 get_charset',
 );
 is(
-    $obj->get_eol(),
+    scalar $obj->get_eol(),
     22,
     '22 get_eol',
 );
 is(
-    $obj->get_separator(),
+    scalar $obj->get_separator(),
     32,
     '32 get_separator',
 );
@@ -64,17 +64,17 @@ is(
 # check defaults
 $obj = Locale::PO::Utils->new();
 is(
-    $obj->get_charset(),
+    scalar $obj->get_charset(),
     'UTF-8',
     'UTF-8 get_charset',
 );
 is(
-    $obj->get_eol(),
+    scalar $obj->get_eol(),
     "\n",
     '\n get_eol',
 );
 is(
-    $obj->get_separator(),
+    scalar $obj->get_separator(),
     "\n",
     '\n get_separator',
 );
